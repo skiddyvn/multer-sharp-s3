@@ -1,7 +1,7 @@
 import { from } from 'rxjs'
 import { map, mergeMap, toArray } from 'rxjs/operators'
 import * as sharp from 'sharp'
-import { lookup } from 'mime-types'
+import { contentType, lookup } from 'mime-types'
 import { ManagedUpload } from 'aws-sdk/lib/s3/managed_upload'
 import { StorageEngine } from 'multer'
 import { Request } from 'express'
@@ -142,7 +142,7 @@ export class S3Storage implements StorageEngine {
                 return {
                   ...size,
                   ...result.info,
-                  ContentType: result.info.format,
+                  ContentType: contentType(result.info.format) || `image/${result.info.format}`,
                   currentSize: result.info.size,
                 }
               })
@@ -163,7 +163,7 @@ export class S3Storage implements StorageEngine {
               ContentType,
               Key: size.directory ? `${size.directory}/${key}` : key,
             }
-            
+
             const upload = opts.s3.upload(newParams)
             let currentSize = { [size.suffix]: 0 }
             upload.on('httpUploadProgress', function(ev) {
@@ -199,7 +199,7 @@ export class S3Storage implements StorageEngine {
                 Metadata,
                 ...rest,
                 size: currentSize,
-                ContentType: optsContentType || ContentType
+                ContentType: optsContentType || contentType(format) || `image/${format}`,
               }
               mimetype = lookup(ContentType) || `image/${ContentType}`
               return acc
@@ -221,7 +221,7 @@ export class S3Storage implements StorageEngine {
       meta$
         .pipe(
           map((metadata) => {
-            newParams.ContentType = opts.ContentType || metadata.info.format
+            newParams.ContentType = opts.ContentType || contentType(metadata.info.format) || `image/${metadata.info.format}`
             return metadata
           }),
           mergeMap((metadata) => {
@@ -250,7 +250,7 @@ export class S3Storage implements StorageEngine {
             Metadata,
             ...rest,
             size: currentSize || size,
-            ContentType: opts.ContentType || format,
+            ContentType: opts.ContentType || contentType(result.format) || `image/${result.format}`,
             mimetype: lookup(result.format) || `image/${result.format}`
           }
           cb(null, JSON.parse(JSON.stringify(endRes)))
@@ -277,7 +277,7 @@ export class S3Storage implements StorageEngine {
       const endRes = {
         size: currentSize,
         ACL: opts.ACL,
-        ContentType: opts.ContentType || mimetype,
+        ContentType: opts.ContentType || contentType(mimetype) || mimetype,
         ContentDisposition: opts.ContentDisposition,
         StorageClass: opts.StorageClass,
         ServerSideEncryption: opts.ServerSideEncryption,

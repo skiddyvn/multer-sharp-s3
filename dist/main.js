@@ -100,7 +100,7 @@ class S3Storage {
                     resolveWithObject: true,
                 });
                 return rxjs_1.from(getMetaFromSharp.then((result) => {
-                    return Object.assign({}, size, result.info, { ContentType: result.info.format, currentSize: result.info.size });
+                    return Object.assign({}, size, result.info, { ContentType: mime_types_1.contentType(result.info.format) || `image/${result.info.format}`, currentSize: result.info.size });
                 }));
             }), operators_1.mergeMap((size) => {
                 const { Body, ContentType } = size;
@@ -134,7 +134,7 @@ class S3Storage {
                         ContentDisposition,
                         StorageClass,
                         ServerSideEncryption,
-                        Metadata }, rest, { size: currentSize, ContentType: optsContentType || ContentType });
+                        Metadata }, rest, { size: currentSize, ContentType: optsContentType || mime_types_1.contentType(format) || `image/${format}` });
                     mimetype = mime_types_1.lookup(ContentType) || `image/${ContentType}`;
                     return acc;
                 }, {});
@@ -152,7 +152,7 @@ class S3Storage {
             }));
             meta$
                 .pipe(operators_1.map((metadata) => {
-                newParams.ContentType = opts.ContentType || metadata.info.format;
+                newParams.ContentType = opts.ContentType || mime_types_1.contentType(metadata.info.format) || `image/${metadata.info.format}`;
                 return metadata;
             }), operators_1.mergeMap((metadata) => {
                 const upload = opts.s3.upload(newParams);
@@ -173,7 +173,7 @@ class S3Storage {
                     ContentDisposition,
                     StorageClass,
                     ServerSideEncryption,
-                    Metadata }, rest, { size: currentSize || size, ContentType: opts.ContentType || format, mimetype: mime_types_1.lookup(result.format) || `image/${result.format}` });
+                    Metadata }, rest, { size: currentSize || size, ContentType: opts.ContentType || mime_types_1.contentType(result.format) || `image/${result.format}`, mimetype: mime_types_1.lookup(result.format) || `image/${result.format}` });
                 cb(null, JSON.parse(JSON.stringify(endRes)));
             }, cb);
         }
@@ -190,7 +190,7 @@ class S3Storage {
             }
         });
         upload.promise().then((result) => {
-            const endRes = Object.assign({ size: currentSize, ACL: opts.ACL, ContentType: opts.ContentType || mimetype, ContentDisposition: opts.ContentDisposition, StorageClass: opts.StorageClass, ServerSideEncryption: opts.ServerSideEncryption, Metadata: opts.Metadata }, result);
+            const endRes = Object.assign({ size: currentSize, ACL: opts.ACL, ContentType: opts.ContentType || mime_types_1.contentType(mimetype) || mimetype, ContentDisposition: opts.ContentDisposition, StorageClass: opts.StorageClass, ServerSideEncryption: opts.ServerSideEncryption, Metadata: opts.Metadata }, result);
             cb(null, JSON.parse(JSON.stringify(endRes)));
         }, cb);
     }
